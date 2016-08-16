@@ -10,14 +10,14 @@
     "usgs"
   ],
   "scripts": {
-    "coverage": "istanbul cover _mocha -- -u exports "test/**/*Test.js" -R spec",
+    "coverage": "istanbul cover _mocha -- -u exports \"test/**/*Test.js\" -R spec",
     "dev": "npm-run-all --parallel watch start",
     "install": "node src/lib/pre-install",
-    "lint": "eslint "**/*.js"",
+    "lint": "eslint \"**/*.js\"",
     "start": "nodemon --watch src src/server.js",
-    "test": "mocha "test/**/*Test.js" --reporter spec",
+    "test": "mocha \"test/**/*Test.js\" --reporter spec",
     "uninstall": "node src/lib/uninstall",
-    "watch": "watch "npm run lint && npm run test" src test"
+    "watch": "watch \"npm run lint && npm run test\" src test"
   },
   "pre-commit": [
     "lint",

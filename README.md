@@ -27,7 +27,8 @@ Using the Generated Project
 
 - Start the container using the image tag
     ```
-    docker run --name earthquake-hazard-probabilistic-ws -d -p ????:???? usgs/earthquake-hazard-probabilistic-ws:latest
+    docker run --name earthquake-hazard-probabilistic-ws -d -p 8000:8000
+    usgs/earthquake-hazard-probabilistic-ws:latest
     ```
 
 - Configure started container
@@ -55,5 +56,5 @@ Using the Generated Project
 
 - Connect to running container in browser
   ```
-  http://localhost:????/ws/earthquake-hazard-probabilistic-ws/
+  http://localhost:8000/ws/earthquake-hazard-probabilistic-ws/
   ```
