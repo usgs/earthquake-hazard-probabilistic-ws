@@ -40,9 +40,6 @@
     "sinon": "^1.17.4",
     "watch": "^0.19.1"
   },
-  "optionalDependencies": {
-    "oracledb": "^1.10.0"
-  },
   "engines": {
     "node": ">=4.2.4"
   }
