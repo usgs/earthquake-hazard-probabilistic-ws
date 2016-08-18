@@ -35,11 +35,17 @@ var HazardCurveFactory = function (options) {
       _database,
       _edition,
       _hostname,
+      _iml,
       _latitude,
       _longitude,
+      _maxLatitude,
+      _maxLongitude,
+      _minLatitude,
+      _minLongitude,
       _mountPath,
       _password,
       _port,
+      _region,
       _user,
       _vs30;
 
@@ -56,12 +62,20 @@ var HazardCurveFactory = function (options) {
     _port = options.port;
     _user = options.user;
 
+
     _edition = options.edition;
     _latitude = options.latitude;
     _longitude = options.longitude;
+    _region = options.region;
     _vs30 = options.vs30;
   };
 
+  _this.adjustToGridSpacing = function (gridspacing) {
+    _maxLatitude = _latitude + gridspacing;
+    _minLatitude = _latitude - gridspacing;
+    _maxLongitude = _longitude + gridspacing;
+    _minLongitude = _longitude - gridspacing;
+  };
 
   /**
    * Free references.
@@ -69,9 +83,14 @@ var HazardCurveFactory = function (options) {
   _this.destroy = function () {
     _database = null;
     _edition = null;
+    _iml = null;
     _hostname = null;
     _latitude = null;
     _longitude = null;
+    _maxLatitude = null;
+    _maxLongitude = null;
+    _minLatitude = null;
+    _minLongitude = null;
     _mountPath = null;
     _password = null;
     _port = null;
@@ -112,7 +131,7 @@ var HazardCurveFactory = function (options) {
    *     resolves with Event object when successfully retrieved,
    *     rejects with Error when unsuccessful.
    */
-  _this.getCurves = function (connection, datasetid) {
+  _this.getCurves = function (connection, datasetid, gridspacing) {
     var sql;
 
     sql =
@@ -126,12 +145,20 @@ var HazardCurveFactory = function (options) {
         'curve ' +
       'WHERE ' +
         'datasetid = $1 AND ' +
-        'latitude  = $2 AND ' +
-        'longitude = $3';
+        'latitude  <= $2 AND ' +
+        'latitude  >= $3 AND ' +
+        'longitude <= $4 AND ' +
+        'longitude >= $5';
 
     return connection.query({
           'text': sql,
-          'values': [datasetid, _latitude, _longitude]
+          'values': [
+            datasetid,
+            _maxLatitude,
+            _minLatitude,
+            _maxLongitude,
+            _minLongitude
+          ]
         }).then(function (result) {
           var json;
 
@@ -147,32 +174,7 @@ var HazardCurveFactory = function (options) {
         });
   };
 
-  _this.getDatasets = function (connection, regionid) {
-    var sql;
-
-    sql =
-        'SELECT ' +
-            'id ' +
-        'FROM ' +
-            'dataset ' +
-        'WHERE ' +
-            'editionid = $1 AND ' +
-            'regionid  = $2 AND ' +
-            'vs30id    = $3';
-
-    return connection.query({
-          'text': sql,
-          'values': [_edition, regionid, _vs30]
-        }).then(function (result) {
-          var datasetid;
-
-          datasetid = result.rows[0].id;
-
-          return _this.getCurves(connection, datasetid);
-        });
-  };
-
-  _this.getRegions = function () {
+  _this.getDatasets = function () {
     var results;
 
     results = _this.getConnection().then(function (connection) {
@@ -181,27 +183,118 @@ var HazardCurveFactory = function (options) {
 
       sql =
           'SELECT ' +
-              'id ' +
+              'dataset.id ' +
+              'region.gridspacing ' +
           'FROM ' +
-              'region ' +
+              'dataset ' +
+              'INNER JOIN edition ON (dataset.editionid = edition.id) ' +
+              'INNER JOIN region ON (dataset.regionid = region.id) ' +
+              'INNER JOIN vs30 ON (dataset.vs30id = vs30.id) ' +
           'WHERE ' +
-              'maxlatitude  < $1 AND ' +
-              'minlatitude  > $1 AND ' +
-              'maxlongitude < $2 AND ' +
-              'minlongitude > $2';
+              'edition.value = $1 AND ' +
+              'region.value  = $2 AND ' +
+              'vs30.value    = $3';
 
       return connection.query({
             'text': sql,
-            'values': [_latitude, _longitude]
+            'values': [
+              _edition,
+              _region,
+              _vs30
+            ]
           }).then(function (result) {
-            var regionid;
+            var datasetid,
+                gridspacing;
 
-            regionid = result.rows[0].id;
+            for (var i = 0, len = result.rows.length; i < len; i ++) {
+              datasetid = result.rows[i].id;
+              gridspacing = result.rows[i].gridspacing;
+              _this.adjustToGridSpacing(gridspacing);
 
-            return _this.getDatasets(connection, regionid);
+              // x-values
+              _iml = result.rows[i].iml;
+
+              return _this.getCurves(connection, datasetid);
+            }
+
           });
     });
   };
+
+  _this.getMetadata = function (results) {
+    var params,
+        url;
+
+    params = [];
+
+    if (_edition) {
+      params.push('edition=' + _edition);
+    }
+    if (_latitude) {
+      params.push('latitude=' + _latitude);
+    }
+    if (_longitude) {
+      params.push('longitude=' + _longitude);
+    }
+    if (_region) {
+      params.push('region=' + _region);
+    }
+    if (_vs30) {
+      params.push('vs30=' + _vs30);
+    }
+
+    if (params.length > 0) {
+      url = '?' + params.join('&');
+    }
+
+    return {
+      'status': (results ? 'success' : 'error'),
+      'date': new Date().getTime(),
+      'url': url
+    };
+  };
+
+  _this.getRegion = function () {
+    // if no region is passed return Conterminous US
+    if (!_region) {
+      _region = 'COUS0P05';
+    }
+  };
+
+  _this.getResults = function (params) {
+    var results;
+
+    if (params) {
+      if (params.hasOwnProperty('edition')) {
+        _edition = params.edition;
+      }
+      if (params.hasOwnProperty('latitude')) {
+        _latitude = params.latitude;
+      }
+      if (params.hasOwnProperty('longitude')) {
+        _longitude = params.longitude;
+      }
+      if (params.hasOwnProperty('region')) {
+        _region = params.region;
+      }
+      if (params.hasOwnProperty('vs30')) {
+        _vs30 = params.vs30;
+      }
+    }
+
+    // sets to Conterminous US if none is passed in
+    _this.getRegion();
+
+    // get curve data
+    results = _this.getDatasets();
+
+    // produce json output
+    return JSON.stringify({
+      'metadata': _this.getMetadata(results),
+      'data': results
+    });
+  };
+
 
 
   /**
@@ -213,11 +306,20 @@ var HazardCurveFactory = function (options) {
    *     curve object.
    * @see _this.getCurves
    */
-  _this._parseRow = function (row) {
-    var result;
+  _this._parseRows = function (row) {
+    var points,
+        result;
+
+    points = [];
+    for (var i = 0, len = _iml.length; i < len; i++) {
+      points.push({
+        'x': _iml[i],
+        'y': row[i] || null
+      });
+    }
 
     result = {
-      'row': row
+      'data': points
     };
 
     return result;
