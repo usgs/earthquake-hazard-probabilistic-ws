@@ -7,7 +7,6 @@ var extend = require('extend'),
 var _DEFAULTS = {
   database: 'database',
   hostname: 'localhost',
-  mountPath: '/ws/hazard',
   password: 'password',
   port: 5432,
   user: 'user'
@@ -33,21 +32,10 @@ var HazardCurveFactory = function (options) {
       _initialize,
 
       _database,
-      _edition,
       _hostname,
-      _iml,
-      _latitude,
-      _longitude,
-      _maxLatitude,
-      _maxLongitude,
-      _minLatitude,
-      _minLongitude,
-      _mountPath,
       _password,
       _port,
-      _region,
-      _user,
-      _vs30;
+      _user;
 
 
   _this = {};
@@ -57,24 +45,9 @@ var HazardCurveFactory = function (options) {
 
     _database = options.database;
     _hostname = options.hostname;
-    _mountPath = options.mountPath;
     _password = options.password;
     _port = options.port;
     _user = options.user;
-
-
-    _edition = options.edition;
-    _latitude = options.latitude;
-    _longitude = options.longitude;
-    _region = options.region;
-    _vs30 = options.vs30;
-  };
-
-  _this.adjustToGridSpacing = function (gridspacing) {
-    _maxLatitude = _latitude + gridspacing;
-    _minLatitude = _latitude - gridspacing;
-    _maxLongitude = _longitude + gridspacing;
-    _minLongitude = _longitude - gridspacing;
   };
 
   /**
@@ -82,20 +55,10 @@ var HazardCurveFactory = function (options) {
    */
   _this.destroy = function () {
     _database = null;
-    _edition = null;
-    _iml = null;
     _hostname = null;
-    _latitude = null;
-    _longitude = null;
-    _maxLatitude = null;
-    _maxLongitude = null;
-    _minLatitude = null;
-    _minLongitude = null;
-    _mountPath = null;
     _password = null;
     _port = null;
     _user = null;
-    _vs30 = null;
 
     _initialize = null;
     _this = null;
@@ -127,202 +90,178 @@ var HazardCurveFactory = function (options) {
    * Obtain information.
    *
    * @return {Promise}
-   *     promise representing event information:
+   *     promise representing curve information:
    *     resolves with Event object when successfully retrieved,
    *     rejects with Error when unsuccessful.
    */
-  _this.getCurves = function (connection, datasetid, gridspacing) {
-    var sql;
+  _this.getCurves = function (datasetid, latitude, longitude, gridspacing) {
 
-    sql =
-      'SELECT ' +
-        'id, ' +
-        'datasetid, ' +
-        'latitude, ' +
-        'longitude, ' +
-        'afe ' +
-      'FROM ' +
-        'curve ' +
-      'WHERE ' +
-        'datasetid = $1 AND ' +
-        'latitude  <= $2 AND ' +
-        'latitude  >= $3 AND ' +
-        'longitude <= $4 AND ' +
-        'longitude >= $5';
-
-    return connection.query({
-          'text': sql,
-          'values': [
-            datasetid,
-            _maxLatitude,
-            _minLatitude,
-            _maxLongitude,
-            _minLongitude
-          ]
-        }).then(function (result) {
-          var json;
-
-          if (result.rows.length === 0) {
-            throw new Error('Curves not found');
-          }
-
-          json = result.rows.forEach(function (row) {
-            _this._parseRow(row);
-          });
-
-          return json;
-        });
-  };
-
-  _this.getDatasets = function () {
-    var results;
-
-    results = _this.getConnection().then(function (connection) {
-
-      var sql;
-
-      sql =
-          'SELECT ' +
-              'dataset.id ' +
-              'region.gridspacing ' +
-          'FROM ' +
-              'dataset ' +
-              'INNER JOIN edition ON (dataset.editionid = edition.id) ' +
-              'INNER JOIN region ON (dataset.regionid = region.id) ' +
-              'INNER JOIN vs30 ON (dataset.vs30id = vs30.id) ' +
-          'WHERE ' +
-              'edition.value = $1 AND ' +
-              'region.value  = $2 AND ' +
-              'vs30.value    = $3';
-
-      return connection.query({
-            'text': sql,
-            'values': [
-              _edition,
-              _region,
-              _vs30
-            ]
-          }).then(function (result) {
-            var datasetid,
-                gridspacing;
-
-            for (var i = 0, len = result.rows.length; i < len; i ++) {
-              datasetid = result.rows[i].id;
-              gridspacing = result.rows[i].gridspacing;
-              _this.adjustToGridSpacing(gridspacing);
-
-              // x-values
-              _iml = result.rows[i].iml;
-
-              return _this.getCurves(connection, datasetid);
-            }
-
-          });
-    });
-  };
-
-  _this.getMetadata = function (results) {
-    var params,
-        url;
-
-    params = [];
-
-    if (_edition) {
-      params.push('edition=' + _edition);
-    }
-    if (_latitude) {
-      params.push('latitude=' + _latitude);
-    }
-    if (_longitude) {
-      params.push('longitude=' + _longitude);
-    }
-    if (_region) {
-      params.push('region=' + _region);
-    }
-    if (_vs30) {
-      params.push('vs30=' + _vs30);
+    // all fields are required
+    if (!datasetid && !latitude && !longitude && !gridspacing) {
+      return Promise.reject(new Error('The following fields are required: ' +
+          'datasetid, latitude, longitude, gridspacing'));
     }
 
-    if (params.length > 0) {
-      url = '?' + params.join('&');
-    }
+    _this.getConnection().then(function (connection) {
+      var maxLatitude,
+          maxLongitude,
+          minLatitude,
+          minLongitude;
 
-    return {
-      'status': (results ? 'success' : 'error'),
-      'date': new Date().getTime(),
-      'url': url
-    };
-  };
+      // find min/max latitude based on grid spacing
+      maxLatitude = latitude + gridspacing;
+      minLatitude = latitude - gridspacing;
+      maxLongitude = longitude + gridspacing;
+      minLongitude = longitude - gridspacing;
 
-  _this.getRegion = function () {
-    // if no region is passed return Conterminous US
-    if (!_region) {
-      _region = 'COUS0P05';
-    }
-  };
-
-  _this.getResults = function (params) {
-    var results;
-
-    if (params) {
-      if (params.hasOwnProperty('edition')) {
-        _edition = params.edition;
-      }
-      if (params.hasOwnProperty('latitude')) {
-        _latitude = params.latitude;
-      }
-      if (params.hasOwnProperty('longitude')) {
-        _longitude = params.longitude;
-      }
-      if (params.hasOwnProperty('region')) {
-        _region = params.region;
-      }
-      if (params.hasOwnProperty('vs30')) {
-        _vs30 = params.vs30;
-      }
-    }
-
-    // sets to Conterminous US if none is passed in
-    _this.getRegion();
-
-    // get curve data
-    results = _this.getDatasets();
-
-    // produce json output
-    return JSON.stringify({
-      'metadata': _this.getMetadata(results),
-      'data': results
+      return connection.query(`
+        SELECT
+          id,
+          datasetid,
+          latitude,
+          longitude,
+          afe
+        FROM
+          curve
+        WHERE
+          datasetid = '${datasetid}' AND
+          latitude  <= '${maxLatitude}' AND
+          latitude  >= '${minLatitude}' AND
+          longitude <= '${maxLongitude}' AND
+          longitude >= '${minLongitude}';
+      `);
     });
   };
 
 
+  _this.getDataset = function (editionid, regionid, vs30id, imtid) {
 
-  /**
-   * Parse one curve row into an object.
-   *
-   * @param row {Object}
-   *     object from getCurves query result.
-   * @return {Object}
-   *     curve object.
-   * @see _this.getCurves
-   */
-  _this._parseRows = function (row) {
-    var points,
-        result;
-
-    points = [];
-    for (var i = 0, len = _iml.length; i < len; i++) {
-      points.push({
-        'x': _iml[i],
-        'y': row[i] || null
-      });
+    // all fields are required
+    if (!editionid && !regionid && !vs30id && !imtid) {
+      return Promise.reject(new Error('The following fields are required: ' +
+          'editionid, regionid, vs30id, imtid'));
     }
 
-    result = {
-      'data': points
-    };
+    _this.getConnection().then(function (connection) {
 
-    return result;
+      return connection.query(`
+          SELECT
+              id,
+              imtid,
+              vs30id,
+              editionid,
+              regionid,
+              iml
+          FROM
+              dataset
+          WHERE
+              (dataset.editionid = '${editionid}' OR '${editionid}' IS NULL) AND
+              (dataset.regionid = '${regionid}' OR '${regionid}' IS NULL) AND
+              (dataset.vs30id = '${vs30id}' OR '${vs30id}' IS NULL) AND
+              (dataset.imtid = '${imtid}' OR '${imtid}' IS NULL)
+      `);
+    });
+  };
+
+  _this.getEdition = function (value) {
+
+    // all fields are required
+    if (!value) {
+      return Promise.reject(new Error('The following fields are required: ' +
+          'edition value'));
+    }
+
+    _this.getConnection().then(function (connection) {
+
+      return connection.query(`
+          SELECT
+              id,
+              value,
+              display,
+              displayorder
+          FROM
+              dataset
+          WHERE
+              (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+      `);
+    });
+  };
+
+  _this.getImt = function (value) {
+
+    // all fields are required
+    if (!value) {
+      return Promise.reject(new Error('The following fields are required: ' +
+          'imt value'));
+    }
+
+    _this.getConnection().then(function (connection) {
+
+      return connection.query(`
+          SELECT
+              id,
+              value,
+              display,
+              displayorder
+          FROM
+              dataset
+          WHERE
+              (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+      `);
+    });
+  };
+
+  _this.getRegion = function (value) {
+
+    // all fields are required
+    if (!value) {
+      return Promise.reject(new Error('The following fields are required: ' +
+          'region value'));
+    }
+
+    _this.getConnection().then(function (connection) {
+
+      return connection.query(`
+          SELECT
+              id,
+              value,
+              display,
+              displayorder,
+              minlatitude,
+              maxlatitude,
+              minlongitude,
+              maxlongitude,
+              gridspacing
+          FROM
+              dataset
+          WHERE
+              (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+      `);
+    });
+  };
+
+  _this.getVs30 = function (value) {
+
+    // all fields are required
+    if (!value) {
+      return Promise.reject(new Error('The following fields are required: ' +
+          'vs30 value'));
+    }
+
+    _this.getConnection().then(function (connection) {
+
+      return connection.query(`
+          SELECT
+              id,
+              value,
+              display,
+              displayorder
+          FROM
+              dataset
+          WHERE
+              (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+      `);
+    });
   };
 
 
