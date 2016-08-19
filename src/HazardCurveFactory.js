@@ -87,12 +87,12 @@ var HazardCurveFactory = function (options) {
   };
 
   /**
-   * Obtain information.
+   * Obtain curve information.
    *
    * @return {Promise}
    *     promise representing curve information:
-   *     resolves with Event object when successfully retrieved,
-   *     rejects with Error when unsuccessful.
+   *     resolves with an object containing curve information when
+   *     successfully retrieved, rejects with Error when unsuccessful.
    */
   _this.getCurves = function (datasetid, latitude, longitude, gridspacing) {
 
@@ -133,7 +133,14 @@ var HazardCurveFactory = function (options) {
     });
   };
 
-
+  /**
+   * Obtain dataset information.
+   *
+   * @return {Promise}
+   *     promise representing dataset information:
+   *     resolves with an object containing dataset information when
+   *     successfully retrieved, rejects with Error when unsuccessful.
+   */
   _this.getDataset = function (editionid, regionid, vs30id, imtid) {
 
     // all fields are required
@@ -163,6 +170,15 @@ var HazardCurveFactory = function (options) {
     });
   };
 
+
+  /**
+   * Obtain edition information.
+   *
+   * @return {Promise}
+   *     promise representing edition information:
+   *     resolves with an object containing edition information when
+   *     successfully retrieved, rejects with Error when unsuccessful.
+   */
   _this.getEdition = function (value) {
 
     // all fields are required
@@ -187,6 +203,15 @@ var HazardCurveFactory = function (options) {
     });
   };
 
+
+  /**
+   * Obtain imt information.
+   *
+   * @return {Promise}
+   *     promise representing imt information:
+   *     resolves with an object containing imt information when
+   *     successfully retrieved, rejects with Error when unsuccessful.
+   */
   _this.getImt = function (value) {
 
     // all fields are required
@@ -211,6 +236,14 @@ var HazardCurveFactory = function (options) {
     });
   };
 
+  /**
+   * Obtain region information.
+   *
+   * @return {Promise}
+   *     promise representing region information:
+   *     resolves with an object containing region information when
+   *     successfully retrieved, rejects with Error when unsuccessful.
+   */
   _this.getRegion = function (value) {
 
     // all fields are required
@@ -240,6 +273,14 @@ var HazardCurveFactory = function (options) {
     });
   };
 
+  /**
+   * Obtain vs30 information.
+   *
+   * @return {Promise}
+   *     promise representing vs30 information:
+   *     resolves with an object containing vs30 information when
+   *     successfully retrieved, rejects with Error when unsuccessful.
+   */
   _this.getVs30 = function (value) {
 
     // all fields are required
