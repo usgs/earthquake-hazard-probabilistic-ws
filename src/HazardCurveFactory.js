@@ -63,26 +63,35 @@ var HazardCurveFactory = function (options) {
 
     return _this.connection.query(`
       SELECT
-        id,
-        datasetid,
-        latitude,
-        longitude,
-        afe
+        curve.id,
+        curve.datasetid,
+        curve.latitude,
+        curve.longitude,
+        curve.afe,
+        dataset.iml
       FROM
         curve
         dataset INNER JOIN (dataset.id = curve.datasetid)
         edition INNER JOIN (dataset.editionid = edition.id)
-        region INNER JOIN (dataset.regionid = region.id)
-        imt INNER JOIN (dataset.imtid = imt.id)
-        vs30 INNER JOIN (dataset.vs30 = vs30.id)
+        region  INNER JOIN (dataset.regionid = region.id)
+        imt     INNER JOIN (dataset.imtid = imt.id)
+        vs30    INNER JOIN (dataset.vs30 = vs30.id)
       WHERE
-        curve.latitude  <= '${latitude}' AND
-        curve.longitude >= '${longitude}' AND
-        edition.value = '${edition}' AND,
-        region.value = '${region}' AND,
-        imt.value = '${imt}' AND,
+        curve.latitude  = '${latitude}' AND
+        curve.longitude = '${longitude}' AND
+        edition.value = '${edition}' AND
+        region.value = '${region}' AND
+        imt.value = '${imt}' AND
         vs30.value = '${vs30}'
-    `);
+    `).then(function (result) {
+      if (result.row && result.row.length && result.row.length > 1) {
+        // TODO, if more than one row then interpolate
+
+      } else {
+        // one row, return curve
+        return result;
+      }
+    });
   };
 
   /**
