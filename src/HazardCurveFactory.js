@@ -3,13 +3,7 @@
 var extend = require('extend');
 
 
-var _DEFAULTS = {
-  database: 'database',
-  hostname: 'localhost',
-  password: 'password',
-  port: 5432,
-  user: 'user'
-};
+var _DEFAULTS = {};
 
 
 /**
