@@ -53,26 +53,15 @@ var HazardCurveFactory = function (options) {
    *     resolves with an object containing curve information when
    *     successfully retrieved, rejects with Error when unsuccessful.
    */
-  _this.getCurves = function (datasetid, latitude, longitude, gridspacing) {
+  _this.getCurve = function (latitude, longitude, edition, region, imt, vs30) {
 
     // all fields are required
-    if (!datasetid && !latitude && !longitude && !gridspacing) {
+    if (!latitude && !longitude && !edition && !region && !imt && !vs30) {
       return Promise.reject(new Error('The following fields are required: ' +
-          'datasetid, latitude, longitude, gridspacing'));
+          'latitude, longitude, edition, region, imt, vs30'));
     }
 
     _this.connection.then(function (connection) {
-      var maxLatitude,
-          maxLongitude,
-          minLatitude,
-          minLongitude;
-
-      // find min/max latitude based on grid spacing
-      maxLatitude = latitude + gridspacing;
-      minLatitude = latitude - gridspacing;
-      maxLongitude = longitude + gridspacing;
-      minLongitude = longitude - gridspacing;
-
       return connection.query(`
         SELECT
           id,
@@ -82,12 +71,18 @@ var HazardCurveFactory = function (options) {
           afe
         FROM
           curve
+          dataset INNER JOIN (dataset.id = curve.datasetid)
+          edition INNER JOIN (dataset.editionid = edition.id)
+          region INNER JOIN (dataset.regionid = region.id)
+          imt INNER JOIN (dataset.imtid = imt.id)
+          vs30 INNER JOIN (dataset.vs30 = vs30.id)
         WHERE
-          datasetid = '${datasetid}' AND
-          latitude  <= '${maxLatitude}' AND
-          latitude  >= '${minLatitude}' AND
-          longitude <= '${maxLongitude}' AND
-          longitude >= '${minLongitude}';
+          curve.latitude  <= '${latitude}' AND
+          curve.longitude >= '${longitude}' AND
+          edition.value = '${edition}' AND,
+          region.value = '${region}' AND,
+          imt.value = '${imt}' AND,
+          vs30.value = '${vs30}'
       `);
     });
   };
