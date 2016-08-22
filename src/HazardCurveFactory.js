@@ -61,36 +61,48 @@ var HazardCurveFactory = function (options) {
           'latitude, longitude, edition, region, imt, vs30'));
     }
 
-    return _this.connection.query(`
-      SELECT
-        curve.id,
-        curve.datasetid,
-        curve.latitude,
-        curve.longitude,
-        curve.afe,
-        dataset.iml
-      FROM
-        curve
-        dataset INNER JOIN (dataset.id = curve.datasetid)
-        edition INNER JOIN (dataset.editionid = edition.id)
-        region  INNER JOIN (dataset.regionid = region.id)
-        imt     INNER JOIN (dataset.imtid = imt.id)
-        vs30    INNER JOIN (dataset.vs30 = vs30.id)
-      WHERE
-        curve.latitude  = '${latitude}' AND
-        curve.longitude = '${longitude}' AND
-        edition.value = '${edition}' AND
-        region.value = '${region}' AND
-        imt.value = '${imt}' AND
-        vs30.value = '${vs30}'
-    `).then(function (result) {
-      if (result.row && result.row.length && result.row.length > 1) {
-        // TODO, if more than one row then interpolate
+    return _this.getRegion(region).then(function (result) {
+      var gridspacing,
+          maxLatitude,
+          maxLongitude,
+          minLatitude,
+          minLongitude;
 
-      } else {
-        // one row, return curve
-        return result;
-      }
+      // find min/max latitude based on grid spacing
+      gridspacing = result.row[0].gridspacing;
+      maxLatitude = latitude + gridspacing;
+      minLatitude = latitude - gridspacing;
+      maxLongitude = longitude + gridspacing;
+      minLongitude = longitude - gridspacing;
+
+      return _this.connection.query(`
+        SELECT
+          curve.id,
+          curve.datasetid,
+          curve.latitude,
+          curve.longitude,
+          curve.afe,
+          dataset.iml
+        FROM
+          curve
+          dataset INNER JOIN (dataset.id = curve.datasetid)
+          edition INNER JOIN (dataset.editionid = edition.id)
+          region  INNER JOIN (dataset.regionid = region.id)
+          imt     INNER JOIN (dataset.imtid = imt.id)
+          vs30    INNER JOIN (dataset.vs30 = vs30.id)
+        WHERE
+          curve.latitude  <= '${maxLatitude}' AND
+          curve.latitude  >= '${minLatitude}' AND
+          curve.longitude <= '${maxLongitude}' AND
+          curve.longitude >= '${minLongitude}' AND
+          edition.value = '${edition}' AND
+          region.value = '${region}' AND
+          imt.value = '${imt}' AND
+          vs30.value = '${vs30}'
+
+      `).then(function (result) {
+        return _this.spatiallyInterpolate(latitude, longitude, result.row);
+      });
     });
   };
 
@@ -155,6 +167,8 @@ var HazardCurveFactory = function (options) {
             edition
         WHERE
             value = '${value}'
+        ORDER BY
+            displayorder ASC
     `);
   };
 
@@ -249,6 +263,75 @@ var HazardCurveFactory = function (options) {
         WHERE
             value = '${value}'
     `);
+  };
+
+  _this.interpolate = function (x0, y0, x1, y1, x) {
+    return y0 + ((x - x0) * ((y1 - y0) / (x1 - x0)));
+  };
+
+  _this.interpolateCurve = function (x0, y0, x1, y1, x) {
+    var i,
+        len,
+        y;
+
+    y = [];
+    len = Math.min(y0.length, y1.length);
+
+    for (i = 0; i < len; i++) {
+      y.push(_this.interpolate(x0, y0[i], x1, y1[i], x));
+    }
+
+    return y;
+  };
+
+  _this.spatiallyInterpolate = function (latitude, longitude, data) {
+    var bottom,
+        numYVals,
+        result,
+        top,
+        y0,
+        y1,
+        y2,
+        y3;
+
+    result = [];
+    numYVals = data.length;
+
+    if (numYVals === 1) {
+      result = data[0].yvals;
+    } else if (numYVals === 2) {
+      y0 = data[0];
+      y1 = data[1];
+
+      if (y0.latitude === y1.latitude) {
+        // Latitudes match, interpolate with respect to longitude
+        result = _this.interpolateCurve(y0.longitude, y0.yvals,
+            y1.longitude, y1.yvals, longitude);
+      } else if (y0.longitude === y1.longitude) {
+        // Latitudes match, interpolate with respect to latitude
+        result = _this.interpolateCurve(y0.latitude, y0.yvals,
+            y1.latitude, y1.yvals, latitude);
+      }
+    } else if (numYVals === 4) {
+      y0 = data[0];
+      y1 = data[1];
+      y2 = data[2];
+      y3 = data[3];
+
+      // Interpolate top (first) two points with respect to longitude
+      top = _this.interpolateCurve(y0.longitude, y0.yvals,
+          y1.longitude, y1.yvals, longitude);
+
+      // Interpolate bottom (second) two points with respect to longitude
+      bottom = _this.interpolateCurve(y2.longitude, y2.yvals,
+          y3.longitude, y3.yvals, longitude);
+
+      // Interpolate top/bottom (interpolated) results with respect to latitude
+      result = _this.interpolateCurve(y0.latitude, top,
+          y2.latitude, bottom, latitude);
+    }
+
+    return result;
   };
 
 
