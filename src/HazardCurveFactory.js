@@ -1,7 +1,6 @@
 'use strict';
 
-var extend = require('extend'),
-    pgp = require('pg-promise')();
+var extend = require('extend');
 
 
 var _DEFAULTS = {
@@ -29,13 +28,7 @@ var _DEFAULTS = {
  */
 var HazardCurveFactory = function (options) {
   var _this,
-      _initialize,
-
-      _database,
-      _hostname,
-      _password,
-      _port,
-      _user;
+      _initialize;
 
 
   _this = {};
@@ -43,47 +36,19 @@ var HazardCurveFactory = function (options) {
   _initialize = function (options) {
     options = extend({}, _DEFAULTS, options);
 
-    _database = options.database;
-    _hostname = options.hostname;
-    _password = options.password;
-    _port = options.port;
-    _user = options.user;
+    _this.connection = options.connection;
+
+    if (!_this.connection) {
+      throw new Error('No database connection provided');
+    }
   };
 
   /**
    * Free references.
    */
   _this.destroy = function () {
-    _database = null;
-    _hostname = null;
-    _password = null;
-    _port = null;
-    _user = null;
-
     _initialize = null;
     _this = null;
-  };
-
-  /**
-   * Obtain database connection.
-   *
-   * @return {Promise}
-   *     promise representing connection attempt:
-   *     resolves with connection object when successful,
-   *     rejects with error when unsuccessful.
-   */
-  _this.getConnection = function () {
-    if (pgp === null) {
-      return Promise.reject(new Error('pg-promise not installed'));
-    } else {
-      return pgp({
-        database: _database,
-        host: _hostname,
-        port: _port,
-        user: _user,
-        password: _password,
-      });
-    }
   };
 
   /**
@@ -102,7 +67,7 @@ var HazardCurveFactory = function (options) {
           'datasetid, latitude, longitude, gridspacing'));
     }
 
-    _this.getConnection().then(function (connection) {
+    _this.connection.then(function (connection) {
       var maxLatitude,
           maxLongitude,
           minLatitude,
@@ -149,7 +114,7 @@ var HazardCurveFactory = function (options) {
           'editionid, regionid, vs30id, imtid'));
     }
 
-    _this.getConnection().then(function (connection) {
+    _this.connection.then(function (connection) {
 
       return connection.query(`
           SELECT
@@ -187,7 +152,7 @@ var HazardCurveFactory = function (options) {
           'edition value'));
     }
 
-    _this.getConnection().then(function (connection) {
+    _this.connection.then(function (connection) {
 
       return connection.query(`
           SELECT
@@ -220,7 +185,7 @@ var HazardCurveFactory = function (options) {
           'imt value'));
     }
 
-    _this.getConnection().then(function (connection) {
+    _this.connection.then(function (connection) {
 
       return connection.query(`
           SELECT
@@ -252,7 +217,7 @@ var HazardCurveFactory = function (options) {
           'region value'));
     }
 
-    _this.getConnection().then(function (connection) {
+    _this.connection.then(function (connection) {
 
       return connection.query(`
           SELECT
@@ -289,7 +254,7 @@ var HazardCurveFactory = function (options) {
           'vs30 value'));
     }
 
-    _this.getConnection().then(function (connection) {
+    _this.connection.then(function (connection) {
 
       return connection.query(`
           SELECT
