@@ -45,6 +45,16 @@ var HazardCurveFactory = function (options) {
     _this = null;
   };
 
+  /**
+   * Format x,y data
+   *
+   * @param x {array}
+   *        x-values
+   * @param y {[type]}
+   *        y-values
+   * @return {Array<array>}
+   *         Multi-dimensional array of x,y values
+   */
   _this.formatCurve = function (x, y) {
     var series;
 
@@ -72,7 +82,7 @@ var HazardCurveFactory = function (options) {
           'latitude, longitude, edition, region, imt, vs30'));
     }
 
-    return _this.getRegion(region).then(function (result) {
+    return _this.getRegionByValue(region).then(function (result) {
       var gridspacing,
           maxLatitude,
           maxLongitude,
@@ -96,11 +106,11 @@ var HazardCurveFactory = function (options) {
           dataset.iml
         FROM
           curve
-          dataset INNER JOIN (dataset.id = curve.datasetid)
-          edition INNER JOIN (dataset.editionid = edition.id)
-          region  INNER JOIN (dataset.regionid = region.id)
-          imt     INNER JOIN (dataset.imtid = imt.id)
-          vs30    INNER JOIN (dataset.vs30 = vs30.id)
+          INNER JOIN dataset ON (dataset.id = curve.datasetid)
+          INNER JOIN edition ON (dataset.editionid = edition.id)
+          INNER JOIN region  ON (dataset.regionid = region.id)
+          INNER JOIN imt     ON (dataset.imtid = imt.id)
+          INNER JOIN vs30    ON (dataset.vs30 = vs30.id)
         WHERE
           curve.latitude  <= '${maxLatitude}' AND
           curve.latitude  >= '${minLatitude}' AND
@@ -171,29 +181,23 @@ var HazardCurveFactory = function (options) {
    *     resolves with an object containing edition information when
    *     successfully retrieved, rejects with Error when unsuccessful.
    */
-  _this.getEdition = function (value) {
+  _this.getEditions = function (hasdata) {
+    var sql;
 
-    // all fields are required
-    if (!value) {
-      return Promise.reject(new Error('The following fields are required: ' +
-          'edition value'));
-    }
+    sql = 'SELECT DISTINCT ' +
+            'edition.id, ' +
+            'edition.value, ' +
+            'edition.display, ' +
+            'edition.displayorder ' +
+        'FROM ' +
+            'edition ' +
+            (hasdata ?
+                'INNER JOIN dataset ON (edition.id = dataset.editionid) ': '') +
+        'ORDER BY ' +
+            'edition.displayorder ASC';
 
-    return _this.connection.query(`
-        SELECT
-            id,
-            value,
-            display,
-            displayorder
-        FROM
-            edition
-        WHERE
-            value = '${value}'
-        ORDER BY
-            displayorder ASC
-    `);
+    return _this.connection.query(sql);
   };
-
 
   /**
    * Obtain imt information.
@@ -203,36 +207,33 @@ var HazardCurveFactory = function (options) {
    *     resolves with an object containing imt information when
    *     successfully retrieved, rejects with Error when unsuccessful.
    */
-  _this.getImt = function (value) {
+  _this.getSpectralPeriods = function (hasdata) {
+    var sql;
 
-    // all fields are required
-    if (!value) {
-      return Promise.reject(new Error('The following fields are required: ' +
-          'imt value'));
-    }
+    sql = 'SELECT DISTINCT ' +
+            'imt.id, ' +
+            'imt.value, ' +
+            'imt.display, ' +
+            'imt.displayorder ' +
+        'FROM ' +
+            'imt ' +
+            (hasdata ?
+                'INNER JOIN dataset ON (imt.id = dataset.imtid) ': '') +
+        'ORDER BY ' +
+            'imt.displayorder ASC';
 
-    return _this.connection.query(`
-        SELECT
-            id,
-            value,
-            display,
-            displayorder
-        FROM
-            imt
-        WHERE
-            value = '${value}'
-    `);
+    return _this.connection.query(sql);
   };
 
   /**
-   * Obtain region information.
+   * Obtain region details based on value provided
    *
    * @return {Promise}
    *     promise representing region information:
    *     resolves with an object containing region information when
    *     successfully retrieved, rejects with Error when unsuccessful.
    */
-  _this.getRegion = function (value) {
+  _this.getRegionByValue = function (value) {
 
     // all fields are required
     if (!value) {
@@ -259,6 +260,32 @@ var HazardCurveFactory = function (options) {
   };
 
   /**
+   * Obtain region information.
+   *
+   * @return {Promise}
+   *     promise representing region information:
+   *     resolves with an object containing region information when
+   *     successfully retrieved, rejects with Error when unsuccessful.
+   */
+  _this.getRegions = function (hasdata) {
+    var sql;
+
+    sql = 'SELECT DISTINCT ' +
+            'region.id, ' +
+            'region.value, ' +
+            'region.display, ' +
+            'region.displayorder ' +
+        'FROM ' +
+            'region ' +
+            (hasdata ?
+                'INNER JOIN dataset ON (region.id = dataset.regionid) ': '') +
+        'ORDER BY ' +
+            'region.displayorder ASC';
+
+    return _this.connection.query(sql);
+  };
+
+  /**
    * Obtain vs30 information.
    *
    * @return {Promise}
@@ -266,25 +293,22 @@ var HazardCurveFactory = function (options) {
    *     resolves with an object containing vs30 information when
    *     successfully retrieved, rejects with Error when unsuccessful.
    */
-  _this.getVs30 = function (value) {
+  _this.getVs30s = function (hasdata) {
+    var sql;
 
-    // all fields are required
-    if (!value) {
-      return Promise.reject(new Error('The following fields are required: ' +
-          'vs30 value'));
-    }
+    sql = 'SELECT DISTINCT ' +
+            'vs30.id, ' +
+            'vs30.value, ' +
+            'vs30.display, ' +
+            'vs30.displayorder ' +
+        'FROM ' +
+            'vs30 ' +
+            (hasdata ?
+                'INNER JOIN dataset ON (vs30.id = dataset.vs30id) ': '') +
+        'ORDER BY ' +
+            'vs30.displayorder ASC';
 
-    return _this.connection.query(`
-        SELECT
-            id,
-            value,
-            display,
-            displayorder
-        FROM
-            vs30
-        WHERE
-            value = '${value}'
-    `);
+    return _this.connection.query(sql);
   };
 
   _this.interpolate = function (x0, y0, x1, y1, x) {
@@ -306,6 +330,18 @@ var HazardCurveFactory = function (options) {
     return y;
   };
 
+  /**
+   * Spatially interpolate curve data.
+   *
+   * @param latitude {number}
+   *        latitude point value
+   * @param longitude {number}
+   *        longitude point value
+   * @param data {array}
+   *        curve y-values, from getCurve()
+   * @return {array}
+   *        interpolated y-values
+   */
   _this.spatiallyInterpolate = function (latitude, longitude, data) {
     var bottom,
         numYVals,
@@ -320,19 +356,19 @@ var HazardCurveFactory = function (options) {
     numYVals = data.length;
 
     if (numYVals === 1) {
-      result = data[0].yvals;
+      result = data[0].afe;
     } else if (numYVals === 2) {
       y0 = data[0];
       y1 = data[1];
 
       if (y0.latitude === y1.latitude) {
         // Latitudes match, interpolate with respect to longitude
-        result = _this.interpolateCurve(y0.longitude, y0.yvals,
-            y1.longitude, y1.yvals, longitude);
+        result = _this.interpolateCurve(y0.longitude, y0.afe,
+            y1.longitude, y1.afe, longitude);
       } else if (y0.longitude === y1.longitude) {
         // Latitudes match, interpolate with respect to latitude
-        result = _this.interpolateCurve(y0.latitude, y0.yvals,
-            y1.latitude, y1.yvals, latitude);
+        result = _this.interpolateCurve(y0.latitude, y0.afe,
+            y1.latitude, y1.afe, latitude);
       }
     } else if (numYVals === 4) {
       y0 = data[0];
@@ -341,12 +377,12 @@ var HazardCurveFactory = function (options) {
       y3 = data[3];
 
       // Interpolate top (first) two points with respect to longitude
-      top = _this.interpolateCurve(y0.longitude, y0.yvals,
-          y1.longitude, y1.yvals, longitude);
+      top = _this.interpolateCurve(y0.longitude, y0.afe,
+          y1.longitude, y1.afe, longitude);
 
       // Interpolate bottom (second) two points with respect to longitude
-      bottom = _this.interpolateCurve(y2.longitude, y2.yvals,
-          y3.longitude, y3.yvals, longitude);
+      bottom = _this.interpolateCurve(y2.longitude, y2.afe,
+          y3.longitude, y3.afe, longitude);
 
       // Interpolate top/bottom (interpolated) results with respect to latitude
       result = _this.interpolateCurve(y0.latitude, top,
