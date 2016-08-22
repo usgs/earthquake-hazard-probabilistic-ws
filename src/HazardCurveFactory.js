@@ -61,30 +61,28 @@ var HazardCurveFactory = function (options) {
           'latitude, longitude, edition, region, imt, vs30'));
     }
 
-    _this.connection.then(function (connection) {
-      return connection.query(`
-        SELECT
-          id,
-          datasetid,
-          latitude,
-          longitude,
-          afe
-        FROM
-          curve
-          dataset INNER JOIN (dataset.id = curve.datasetid)
-          edition INNER JOIN (dataset.editionid = edition.id)
-          region INNER JOIN (dataset.regionid = region.id)
-          imt INNER JOIN (dataset.imtid = imt.id)
-          vs30 INNER JOIN (dataset.vs30 = vs30.id)
-        WHERE
-          curve.latitude  <= '${latitude}' AND
-          curve.longitude >= '${longitude}' AND
-          edition.value = '${edition}' AND,
-          region.value = '${region}' AND,
-          imt.value = '${imt}' AND,
-          vs30.value = '${vs30}'
-      `);
-    });
+    return _this.connection.query(`
+      SELECT
+        id,
+        datasetid,
+        latitude,
+        longitude,
+        afe
+      FROM
+        curve
+        dataset INNER JOIN (dataset.id = curve.datasetid)
+        edition INNER JOIN (dataset.editionid = edition.id)
+        region INNER JOIN (dataset.regionid = region.id)
+        imt INNER JOIN (dataset.imtid = imt.id)
+        vs30 INNER JOIN (dataset.vs30 = vs30.id)
+      WHERE
+        curve.latitude  <= '${latitude}' AND
+        curve.longitude >= '${longitude}' AND
+        edition.value = '${edition}' AND,
+        region.value = '${region}' AND,
+        imt.value = '${imt}' AND,
+        vs30.value = '${vs30}'
+    `);
   };
 
   /**
@@ -103,25 +101,22 @@ var HazardCurveFactory = function (options) {
           'editionid, regionid, vs30id, imtid'));
     }
 
-    _this.connection.then(function (connection) {
-
-      return connection.query(`
-          SELECT
-              id,
-              imtid,
-              vs30id,
-              editionid,
-              regionid,
-              iml
-          FROM
-              dataset
-          WHERE
-              (dataset.editionid = '${editionid}' OR '${editionid}' IS NULL) AND
-              (dataset.regionid = '${regionid}' OR '${regionid}' IS NULL) AND
-              (dataset.vs30id = '${vs30id}' OR '${vs30id}' IS NULL) AND
-              (dataset.imtid = '${imtid}' OR '${imtid}' IS NULL)
-      `);
-    });
+    return _this.connection.query(`
+        SELECT
+            id,
+            imtid,
+            vs30id,
+            editionid,
+            regionid,
+            iml
+        FROM
+            dataset
+        WHERE
+            (dataset.editionid = '${editionid}' OR '${editionid}' IS NULL) AND
+            (dataset.regionid = '${regionid}' OR '${regionid}' IS NULL) AND
+            (dataset.vs30id = '${vs30id}' OR '${vs30id}' IS NULL) AND
+            (dataset.imtid = '${imtid}' OR '${imtid}' IS NULL)
+    `);
   };
 
 
@@ -141,20 +136,17 @@ var HazardCurveFactory = function (options) {
           'edition value'));
     }
 
-    _this.connection.then(function (connection) {
-
-      return connection.query(`
-          SELECT
-              id,
-              value,
-              display,
-              displayorder
-          FROM
-              dataset
-          WHERE
-              (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
-      `);
-    });
+    return _this.connection.query(`
+        SELECT
+            id,
+            value,
+            display,
+            displayorder
+        FROM
+            dataset
+        WHERE
+            (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+    `);
   };
 
 
@@ -174,20 +166,17 @@ var HazardCurveFactory = function (options) {
           'imt value'));
     }
 
-    _this.connection.then(function (connection) {
-
-      return connection.query(`
-          SELECT
-              id,
-              value,
-              display,
-              displayorder
-          FROM
-              dataset
-          WHERE
-              (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
-      `);
-    });
+    return _this.connection.query(`
+        SELECT
+            id,
+            value,
+            display,
+            displayorder
+        FROM
+            dataset
+        WHERE
+            (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+    `);
   };
 
   /**
@@ -206,25 +195,22 @@ var HazardCurveFactory = function (options) {
           'region value'));
     }
 
-    _this.connection.then(function (connection) {
-
-      return connection.query(`
-          SELECT
-              id,
-              value,
-              display,
-              displayorder,
-              minlatitude,
-              maxlatitude,
-              minlongitude,
-              maxlongitude,
-              gridspacing
-          FROM
-              dataset
-          WHERE
-              (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
-      `);
-    });
+    return _this.connection.query(`
+        SELECT
+            id,
+            value,
+            display,
+            displayorder,
+            minlatitude,
+            maxlatitude,
+            minlongitude,
+            maxlongitude,
+            gridspacing
+        FROM
+            dataset
+        WHERE
+            (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+    `);
   };
 
   /**
@@ -243,20 +229,17 @@ var HazardCurveFactory = function (options) {
           'vs30 value'));
     }
 
-    _this.connection.then(function (connection) {
-
-      return connection.query(`
-          SELECT
-              id,
-              value,
-              display,
-              displayorder
-          FROM
-              dataset
-          WHERE
-              (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
-      `);
-    });
+    return _this.connection.query(`
+        SELECT
+            id,
+            value,
+            display,
+            displayorder
+        FROM
+            dataset
+        WHERE
+            (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+    `);
   };
 
 
