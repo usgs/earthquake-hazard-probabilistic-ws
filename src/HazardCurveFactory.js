@@ -143,9 +143,9 @@ var HazardCurveFactory = function (options) {
             display,
             displayorder
         FROM
-            dataset
+            edition
         WHERE
-            (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+            value = '${value}'
     `);
   };
 
@@ -173,9 +173,9 @@ var HazardCurveFactory = function (options) {
             display,
             displayorder
         FROM
-            dataset
+            imt
         WHERE
-            (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+            value = '${value}'
     `);
   };
 
@@ -207,9 +207,9 @@ var HazardCurveFactory = function (options) {
             maxlongitude,
             gridspacing
         FROM
-            dataset
+            region
         WHERE
-            (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+            value = '${value}'
     `);
   };
 
@@ -236,9 +236,9 @@ var HazardCurveFactory = function (options) {
             display,
             displayorder
         FROM
-            dataset
+            vs30
         WHERE
-            (dataset.editionid = '${value}' OR '${value}' IS NULL) AND
+            value = '${value}'
     `);
   };
 
