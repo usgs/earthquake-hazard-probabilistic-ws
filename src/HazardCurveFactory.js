@@ -45,6 +45,17 @@ var HazardCurveFactory = function (options) {
     _this = null;
   };
 
+  _this.formatCurve = function (x, y) {
+    var series;
+
+    series = [];
+    for (var i = 0, len = x.length; i < len; i++) {
+      series.push([x[i], y[i]]);
+    }
+
+    return series;
+  };
+
   /**
    * Obtain curve information.
    *
@@ -101,7 +112,18 @@ var HazardCurveFactory = function (options) {
           vs30.value = '${vs30}'
 
       `).then(function (result) {
-        return _this.spatiallyInterpolate(latitude, longitude, result.row);
+        return {
+          'metadata': {
+            'edition': edition,
+            'imt': imt,
+            'latitude': latitude,
+            'longitude': longitude,
+            'region': region,
+            'vs30': vs30
+          },
+          'data': _this.formatCurve(result.row[0].iml,
+              _this.spatiallyInterpolate(latitude, longitude, result.row))
+        };
       });
     });
   };
