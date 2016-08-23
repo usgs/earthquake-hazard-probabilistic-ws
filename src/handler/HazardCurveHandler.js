@@ -1,5 +1,7 @@
 'use strict';
 
+var HazardCurveFactory = require('../HazardCurveFactory');
+
 
 var HazardCurveHandler = function (options) {
   var _this,
@@ -8,8 +10,11 @@ var HazardCurveHandler = function (options) {
 
   _this = {};
 
-  _initialize = function (/*options*/) {
-    _this.db = options.db;
+  _initialize = function (options) {
+    //_this.db = options.db;
+    _this.factory = HazardCurveFactory({
+      db: options.db
+    });
   };
 
   /**
@@ -20,55 +25,120 @@ var HazardCurveHandler = function (options) {
    *     reject if an error occurs.
    */
   _this.get = function (query) {
-    return new Promise((resolve, reject) => {
-      var err,
-          queryChain,
-          queries,
-          result;
+    var results;
 
-      result = [];
-      queries = _this.parseQuery(query);
+    results = [];
 
-      if (queries.length === 0) {
-        err = new Error('Invalid usage'); // TODO :: Be more informative
-        err.status = 400; // HTTP 400 >> Bad Usage
-        reject(err);
-        return;
-      }
+    return _this.parseQuery(query).then((queries) => {
+      var result;
 
-      queryChain = Promise.resolve();
+      result = Promise.resolve();
 
-      queries.forEach((/*q*/) => {
-        // TODO :: Ask factory for a curve
-        queryChain = queryChain.then(() => {
-          return _this.db.query('SELECT * FROM curve LIMIT 1').then((data) => {
-            result.push(data[0]);
-          });
+      queries.forEach((q) => {
+        process.stderr.write(JSON.stringify(q, null, 2)+'\n');
+        result = result.then(() => {
+          process.stderr.write('calling factory.getCurve\n');
+          return _this.factory.getCurve(q.latitude, q.longitude, q.modelEdition,
+              q.vs30, q.modelRegion, q.spectralPeriod).then((curve) => {
+                results.push(curve);
+                process.stderr.write('' + results.length + '\n');
+                return results;
+              });
         });
-      });
 
-      queryChain.then(() => {
-        resolve(result);
+        return result;
       });
     });
   };
 
   _this.parseQuery = function (query) {
-    var queries;
+    var buf,
+        chain,
+        err,
+        latitude,
+        longitude,
+        modelEdition,
+        modelRegion,
+        queries,
+        spectralPeriod,
+        vs30;
 
+    buf = [];
     queries = [];
+
+    latitude = query.latitude;
+    longitude = query.longitude;
+    modelEdition = query.modelEdition;
+    modelRegion = query.modelRegion;
+    spectralPeriod = query.spectralPeriod;
+    vs30 = query.vs30;
 
     // TODO :: Currently require all parameters, update to accept some things
     //         as optional
-    if (query.latitude && query.longitude && query.modelEdition &&
-        query.vs30 && query.modelRegion && query.spectralPeriod) {
 
-      // TODO :: Add a query to queries for each variation that may exist
-      //         caused by a user not providing an optional parameter.
-      queries.push(query);
+    // Checks for required parameters if one is missing formats error message
+    if (typeof latitude === 'undefined' || latitude === null) {
+      buf.push('latitude');
     }
 
-    return queries;
+    if (typeof longitude === 'undefined' || longitude === null) {
+      buf.push('longitude');
+    }
+
+    if (typeof modelEdition === 'undefined' || modelEdition === null) {
+      buf.push('modelEdition');
+    }
+
+    if (typeof vs30 === 'undefined' || vs30 === null) {
+      buf.push('vs30');
+    }
+
+    if (buf.length > 0) {
+      err = new Error('Required parameter missing: ' + buf.join(', '));
+      err.status = 400;
+      return Promise.reject(err);
+    }
+
+    chain = Promise.resolve();
+
+    if (typeof modelRegion === 'undefined' || modelRegion === null) {
+      chain = chain.then(() => {
+        _this.factory.getRegions(latitude, longitude, modelEdition)
+            .then((regions) => {
+              modelRegion = regions[0].value;
+            });
+      });
+    }
+
+    if (typeof spectralPeriod === 'undefined' || spectralPeriod === null) {
+      chain = chain.then(() => {
+        _this.factory.getSpectralPeriods(modelEdition, modelRegion)
+            .then((spectralPeriods) => {
+              spectralPeriod = spectralPeriods.map((period) => {
+                return period.value;
+              });
+            });
+      });
+    } else {
+      spectralPeriod = [spectralPeriod];
+    }
+
+    chain = chain.then(() => {
+      spectralPeriod.forEach((period) => {
+        queries.push({
+          latitude: latitude,
+          longitude: longitude,
+          modelEdition: modelEdition,
+          modelRegion: modelRegion,
+          spectralPeriod: period,
+          vs30: vs30
+        });
+      });
+
+      return queries;
+    });
+
+    return chain;
   };
 
   _initialize(options);
