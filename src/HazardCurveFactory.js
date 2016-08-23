@@ -24,7 +24,6 @@ var HazardCurveFactory = function (options) {
   var _this,
       _initialize;
 
-
   _this = {};
 
   _initialize = function (options) {
@@ -400,3 +399,4 @@ var HazardCurveFactory = function (options) {
 
 
 module.exports = HazardCurveFactory;
+
