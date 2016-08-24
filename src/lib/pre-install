@@ -42,25 +42,31 @@ questions = [
   {
     'type': 'input',
     'name': 'DB_HOST',
-    'message': 'Database hostname',
+    'message': 'Database hostname?',
     'default': null
   },
   {
     'type': 'input',
     'name': 'DB_NAME',
-    'message': 'Database name',
+    'message': 'Database name?',
     'default': null
   },
   {
     'type': 'input',
     'name': 'DB_USER',
-    'message': 'Database username',
+    'message': 'Database username?',
     'default': null
   },
   {
     'type': 'password',
     'name': 'DB_PASS',
-    'message': 'Database password',
+    'message': 'Database password?',
+    'default': null
+  },
+  {
+    'type': 'input',
+    'name': 'DB_PORT',
+    'message': 'Database port?',
     'default': null
   }
 ];
