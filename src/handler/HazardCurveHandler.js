@@ -11,9 +11,8 @@ var HazardCurveHandler = function (options) {
   _this = {};
 
   _initialize = function (options) {
-    //_this.db = options.db;
     _this.factory = HazardCurveFactory({
-      db: options.db
+      connection: options.db
     });
   };
 
@@ -28,26 +27,22 @@ var HazardCurveHandler = function (options) {
     var results;
 
     results = [];
-
     return _this.parseQuery(query).then((queries) => {
       var result;
 
       result = Promise.resolve();
 
       queries.forEach((q) => {
-        process.stderr.write(JSON.stringify(q, null, 2)+'\n');
         result = result.then(() => {
-          process.stderr.write('calling factory.getCurve\n');
           return _this.factory.getCurve(q.latitude, q.longitude, q.modelEdition,
-              q.vs30, q.modelRegion, q.spectralPeriod).then((curve) => {
+              q.modelRegion, q.spectralPeriod, q.vs30).then((curve) => {
                 results.push(curve);
-                process.stderr.write('' + results.length + '\n');
                 return results;
               });
         });
-
-        return result;
       });
+
+      return result;
     });
   };
 
@@ -103,7 +98,7 @@ var HazardCurveHandler = function (options) {
 
     if (typeof modelRegion === 'undefined' || modelRegion === null) {
       chain = chain.then(() => {
-        _this.factory.getRegions(latitude, longitude, modelEdition)
+        return _this.factory.getRegions(latitude, longitude, modelEdition)
             .then((regions) => {
               modelRegion = regions[0].value;
             });
@@ -112,7 +107,7 @@ var HazardCurveHandler = function (options) {
 
     if (typeof spectralPeriod === 'undefined' || spectralPeriod === null) {
       chain = chain.then(() => {
-        _this.factory.getSpectralPeriods(modelEdition, modelRegion)
+        return _this.factory.getSpectralPeriods(modelEdition, modelRegion)
             .then((spectralPeriods) => {
               spectralPeriod = spectralPeriods.map((period) => {
                 return period.value;
