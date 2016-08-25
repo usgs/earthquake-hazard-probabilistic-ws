@@ -1,7 +1,5 @@
 'use strict';
 
-var HazardCurveFactory = require('../HazardCurveFactory');
-
 
 /**
  * Handler for hazard curve requests.
@@ -24,13 +22,29 @@ var HazardCurveHandler = function (options) {
    *
    * @param options {Object}
    *     Configuration options for this handler instance. Specifically:
-   * @param options.db {pg-promise::Database}
-   *     A pg-promise database connection
+   * @param options.db {HazardCurveFactory}
+   *     The factory to use for fetching data.
    */
   _initialize = function (options) {
-    _this.factory = HazardCurveFactory({
-      connection: options.db
-    });
+    options = options || {};
+
+    _this.factory = options.factory || null;
+  };
+
+
+  /**
+   * Frees resources associated with this handler instance.
+   *
+   */
+  _this.destroy = function () {
+    if (_this ===  null) {
+      return;
+    }
+
+    _this.factory = null;
+
+    _initialize = null;
+    _this = null;
   };
 
   /**
