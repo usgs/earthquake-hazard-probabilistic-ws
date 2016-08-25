@@ -111,10 +111,10 @@ var HazardCurveFactory = function (options) {
           INNER JOIN imt     ON (dataset.imtid = imt.id)
           INNER JOIN vs30    ON (dataset.vs30id = vs30.id)
         WHERE
-          curve.latitude  < '${maxLatitude}' AND
-          curve.latitude  > '${minLatitude}' AND
-          curve.longitude < '${maxLongitude}' AND
-          curve.longitude > '${minLongitude}' AND
+          curve.latitude  < ${maxLatitude} AND
+          curve.latitude  > ${minLatitude} AND
+          curve.longitude < ${maxLongitude} AND
+          curve.longitude > ${minLongitude} AND
           edition.value = '${edition}' AND
           region.value = '${region}' AND
           imt.value = '${imt}' AND
