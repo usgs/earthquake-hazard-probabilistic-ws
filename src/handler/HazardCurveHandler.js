@@ -3,6 +3,15 @@
 var HazardCurveFactory = require('../HazardCurveFactory');
 
 
+/**
+ * Handler for hazard curve requests.
+ *
+ * Parses and validates input parameters. Fetches curve data using the
+ * {HazardCurveFactory} and returns results.
+ *
+ * @param options {Object}
+ *     Configuration options for this handler. See `_initialize` for details.
+ */
 var HazardCurveHandler = function (options) {
   var _this,
       _initialize;
@@ -10,6 +19,14 @@ var HazardCurveHandler = function (options) {
 
   _this = {};
 
+  /**
+   * Initializes a new handler instance. Called during construction.
+   *
+   * @param options {Object}
+   *     Configuration options for this handler instance. Specifically:
+   * @param options.db {pg-promise::Database}
+   *     A pg-promise database connection
+   */
   _initialize = function (options) {
     _this.factory = HazardCurveFactory({
       connection: options.db
@@ -17,10 +34,13 @@ var HazardCurveHandler = function (options) {
   };
 
   /**
+   * Handles GET requests for data.
+   *
    * @param query {Object}
    *     Query string parameters received with the user request for data.
+   *
    * @return {Promise}
-   *     A promise that will resolve with a hazard curve result object, or
+   *     A promise that resolves with a hazard curve result object, or
    *     reject if an error occurs.
    */
   _this.get = function (query) {
@@ -46,6 +66,23 @@ var HazardCurveHandler = function (options) {
     });
   };
 
+  /**
+   * Parses the (possibly partial) query from the original GET request into
+   * an array of (complete) query objects. That is, some parameters are
+   * optional in the web service API and this method fills in the defaults.
+   * Some optional parameters may default to using "all available" values,
+   * and hence an array of queries.
+   *
+   * @param query {Object}
+   *     An object containing required and some or all optional parameters
+   *     per the web API.
+   *
+   * @return {Promise<Array, Error>}
+   *     A promise resolving with an array of complete query objects. Each
+   *     object contains a single value for all required and optional
+   *     parameters. If the original `query` does not specify all required
+   *     parameters, or if an error occurs, the promise rejects with an error.
+   */
   _this.parseQuery = function (query) {
     var buf,
         chain,
@@ -68,9 +105,6 @@ var HazardCurveHandler = function (options) {
     spectralPeriod = query.spectralPeriod;
     vs30 = query.vs30;
 
-    // TODO :: Currently require all parameters, update to accept some things
-    //         as optional
-
     // Checks for required parameters if one is missing formats error message
     if (typeof latitude === 'undefined' || latitude === null) {
       buf.push('latitude');
@@ -89,13 +123,15 @@ var HazardCurveHandler = function (options) {
     }
 
     if (buf.length > 0) {
-      err = new Error('Required parameter missing: ' + buf.join(', '));
+      err = new Error('Missing required parameter(s): ' + buf.join(', '));
       err.status = 400;
       return Promise.reject(err);
     }
 
+    // All required parameters are set. Now handle the optional parameters.
     chain = Promise.resolve();
 
+    // If no modelRegion is set, use the "best available region"
     if (typeof modelRegion === 'undefined' || modelRegion === null) {
       chain = chain.then(() => {
         return _this.factory.getRegions(latitude, longitude, modelEdition)
@@ -105,6 +141,7 @@ var HazardCurveHandler = function (options) {
       });
     }
 
+    // If no spectralPeriod is set, use "all available periods"
     if (typeof spectralPeriod === 'undefined' || spectralPeriod === null) {
       chain = chain.then(() => {
         return _this.factory.getSpectralPeriods(modelEdition, modelRegion)
