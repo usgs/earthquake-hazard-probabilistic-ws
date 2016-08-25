@@ -265,7 +265,7 @@ var HazardCurveFactory = function (options) {
    *     resolves with an object containing region information when
    *     successfully retrieved, rejects with Error when unsuccessful.
    */
-  _this.getRegions = function (hasdata, latitude, longitude) {
+  _this.getRegions = function (latitude, longitude, hasdata) {
     var sql;
 
     sql = 'SELECT DISTINCT ' +
@@ -276,13 +276,13 @@ var HazardCurveFactory = function (options) {
         'FROM ' +
             'region ' +
             (hasdata ?
-                'INNER JOIN dataset ON (region.id = dataset.regionid) ': '') +
+            'INNER JOIN dataset ON (region.id = dataset.regionid) ': '') +
         (latitude !== null && longitude !== null ?
-            'WHERE' +
-              'region.maxlatitude >= ' + latitude +
-              'region.maxlongitude >= ' + longitude +
-              'region.minlatitude <= ' + latitude +
-              'region.minlongitude <= ' + longitude
+        'WHERE ' +
+            'region.maxlatitude >= ' + latitude + ' AND ' +
+            'region.maxlongitude >= ' + longitude + ' AND ' +
+            'region.minlatitude <= ' + latitude + ' AND ' +
+            'region.minlongitude <= ' + longitude + ' '
             : '' ) +
         'ORDER BY ' +
             'region.displayorder ASC';
