@@ -24,7 +24,6 @@ var HazardCurveFactory = function (options) {
   var _this,
       _initialize;
 
-
   _this = {};
 
   _initialize = function (options) {
@@ -75,7 +74,6 @@ var HazardCurveFactory = function (options) {
    *     successfully retrieved, rejects with Error when unsuccessful.
    */
   _this.getCurve = function (latitude, longitude, edition, region, imt, vs30) {
-
     // all fields are required
     if (!latitude && !longitude && !edition && !region && !imt && !vs30) {
       return Promise.reject(new Error('The following fields are required: ' +
@@ -90,11 +88,11 @@ var HazardCurveFactory = function (options) {
           minLongitude;
 
       // find min/max latitude based on grid spacing
-      gridspacing = result.row[0].gridspacing;
-      maxLatitude = latitude + gridspacing;
-      minLatitude = latitude - gridspacing;
-      maxLongitude = longitude + gridspacing;
-      minLongitude = longitude - gridspacing;
+      gridspacing = parseFloat(result[0].gridspacing);
+      maxLatitude = parseFloat(latitude) + gridspacing;
+      minLatitude = parseFloat(latitude) - gridspacing;
+      maxLongitude = parseFloat(longitude) + gridspacing;
+      minLongitude = parseFloat(longitude) - gridspacing;
 
       return _this.connection.query(`
         SELECT
@@ -110,17 +108,16 @@ var HazardCurveFactory = function (options) {
           INNER JOIN edition ON (dataset.editionid = edition.id)
           INNER JOIN region  ON (dataset.regionid = region.id)
           INNER JOIN imt     ON (dataset.imtid = imt.id)
-          INNER JOIN vs30    ON (dataset.vs30 = vs30.id)
+          INNER JOIN vs30    ON (dataset.vs30id = vs30.id)
         WHERE
-          curve.latitude  <= '${maxLatitude}' AND
-          curve.latitude  >= '${minLatitude}' AND
-          curve.longitude <= '${maxLongitude}' AND
-          curve.longitude >= '${minLongitude}' AND
+          curve.latitude  < '${maxLatitude}' AND
+          curve.latitude  > '${minLatitude}' AND
+          curve.longitude < '${maxLongitude}' AND
+          curve.longitude > '${minLongitude}' AND
           edition.value = '${edition}' AND
           region.value = '${region}' AND
           imt.value = '${imt}' AND
           vs30.value = '${vs30}'
-
       `).then(function (result) {
         return {
           'metadata': {
@@ -131,8 +128,8 @@ var HazardCurveFactory = function (options) {
             'region': region,
             'vs30': vs30
           },
-          'data': _this.formatCurve(result.row[0].iml,
-              _this.spatiallyInterpolate(latitude, longitude, result.row))
+          'data': _this.formatCurve(result[0].iml,
+              _this.spatiallyInterpolate(latitude, longitude, result))
         };
       });
     });
@@ -400,3 +397,4 @@ var HazardCurveFactory = function (options) {
 
 
 module.exports = HazardCurveFactory;
+

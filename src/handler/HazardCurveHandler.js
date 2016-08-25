@@ -1,6 +1,15 @@
 'use strict';
 
 
+/**
+ * Handler for hazard curve requests.
+ *
+ * Parses and validates input parameters. Fetches curve data using the
+ * {HazardCurveFactory} and returns results.
+ *
+ * @param options {Object}
+ *     Configuration options for this handler. See `_initialize` for details.
+ */
 var HazardCurveHandler = function (options) {
   var _this,
       _initialize;
@@ -8,67 +17,174 @@ var HazardCurveHandler = function (options) {
 
   _this = {};
 
-  _initialize = function (/*options*/) {
-    _this.db = options.db;
+  /**
+   * Initializes a new handler instance. Called during construction.
+   *
+   * @param options {Object}
+   *     Configuration options for this handler instance. Specifically:
+   * @param options.db {HazardCurveFactory}
+   *     The factory to use for fetching data.
+   */
+  _initialize = function (options) {
+    options = options || {};
+
+    _this.factory = options.factory || null;
+  };
+
+
+  /**
+   * Frees resources associated with this handler instance.
+   *
+   */
+  _this.destroy = function () {
+    if (_this ===  null) {
+      return;
+    }
+
+    _this.factory = null;
+
+    _initialize = null;
+    _this = null;
   };
 
   /**
+   * Handles GET requests for data.
+   *
    * @param query {Object}
    *     Query string parameters received with the user request for data.
+   *
    * @return {Promise}
-   *     A promise that will resolve with a hazard curve result object, or
+   *     A promise that resolves with a hazard curve result object, or
    *     reject if an error occurs.
    */
   _this.get = function (query) {
-    return new Promise((resolve, reject) => {
-      var err,
-          queryChain,
-          queries,
-          result;
+    var results;
 
-      result = [];
-      queries = _this.parseQuery(query);
+    results = [];
+    return _this.parseQuery(query).then((queries) => {
+      var result;
 
-      if (queries.length === 0) {
-        err = new Error('Invalid usage'); // TODO :: Be more informative
-        err.status = 400; // HTTP 400 >> Bad Usage
-        reject(err);
-        return;
-      }
+      result = Promise.resolve();
 
-      queryChain = Promise.resolve();
-
-      queries.forEach((/*q*/) => {
-        // TODO :: Ask factory for a curve
-        queryChain = queryChain.then(() => {
-          return _this.db.query('SELECT * FROM curve LIMIT 1').then((data) => {
-            result.push(data[0]);
-          });
+      queries.forEach((q) => {
+        result = result.then(() => {
+          return _this.factory.getCurve(q.latitude, q.longitude, q.modelEdition,
+              q.modelRegion, q.spectralPeriod, q.vs30).then((curve) => {
+                results.push(curve);
+                return results;
+              });
         });
       });
 
-      queryChain.then(() => {
-        resolve(result);
-      });
+      return result;
     });
   };
 
+  /**
+   * Parses the (possibly partial) query from the original GET request into
+   * an array of (complete) query objects. That is, some parameters are
+   * optional in the web service API and this method fills in the defaults.
+   * Some optional parameters may default to using "all available" values,
+   * and hence an array of queries.
+   *
+   * @param query {Object}
+   *     An object containing required and some or all optional parameters
+   *     per the web API.
+   *
+   * @return {Promise<Array, Error>}
+   *     A promise resolving with an array of complete query objects. Each
+   *     object contains a single value for all required and optional
+   *     parameters. If the original `query` does not specify all required
+   *     parameters, or if an error occurs, the promise rejects with an error.
+   */
   _this.parseQuery = function (query) {
-    var queries;
+    var buf,
+        chain,
+        err,
+        latitude,
+        longitude,
+        modelEdition,
+        modelRegion,
+        queries,
+        spectralPeriod,
+        vs30;
 
+    buf = [];
     queries = [];
 
-    // TODO :: Currently require all parameters, update to accept some things
-    //         as optional
-    if (query.latitude && query.longitude && query.modelEdition &&
-        query.vs30 && query.modelRegion && query.spectralPeriod) {
+    latitude = query.latitude;
+    longitude = query.longitude;
+    modelEdition = query.modelEdition;
+    modelRegion = query.modelRegion;
+    spectralPeriod = query.spectralPeriod;
+    vs30 = query.vs30;
 
-      // TODO :: Add a query to queries for each variation that may exist
-      //         caused by a user not providing an optional parameter.
-      queries.push(query);
+    // Checks for required parameters if one is missing formats error message
+    if (typeof latitude === 'undefined' || latitude === null) {
+      buf.push('latitude');
     }
 
-    return queries;
+    if (typeof longitude === 'undefined' || longitude === null) {
+      buf.push('longitude');
+    }
+
+    if (typeof modelEdition === 'undefined' || modelEdition === null) {
+      buf.push('modelEdition');
+    }
+
+    if (typeof vs30 === 'undefined' || vs30 === null) {
+      buf.push('vs30');
+    }
+
+    if (buf.length > 0) {
+      err = new Error('Missing required parameter(s): ' + buf.join(', '));
+      err.status = 400;
+      return Promise.reject(err);
+    }
+
+    // All required parameters are set. Now handle the optional parameters.
+    chain = Promise.resolve();
+
+    // If no modelRegion is set, use the "best available region"
+    if (typeof modelRegion === 'undefined' || modelRegion === null) {
+      chain = chain.then(() => {
+        return _this.factory.getRegions(latitude, longitude, modelEdition)
+            .then((regions) => {
+              modelRegion = regions[0].value;
+            });
+      });
+    }
+
+    // If no spectralPeriod is set, use "all available periods"
+    if (typeof spectralPeriod === 'undefined' || spectralPeriod === null) {
+      chain = chain.then(() => {
+        return _this.factory.getSpectralPeriods(modelEdition, modelRegion)
+            .then((spectralPeriods) => {
+              spectralPeriod = spectralPeriods.map((period) => {
+                return period.value;
+              });
+            });
+      });
+    } else {
+      spectralPeriod = [spectralPeriod];
+    }
+
+    chain = chain.then(() => {
+      spectralPeriod.forEach((period) => {
+        queries.push({
+          latitude: latitude,
+          longitude: longitude,
+          modelEdition: modelEdition,
+          modelRegion: modelRegion,
+          spectralPeriod: period,
+          vs30: vs30
+        });
+      });
+
+      return queries;
+    });
+
+    return chain;
   };
 
   _initialize(options);
