@@ -63,7 +63,7 @@ var WebService = function (options) {
     });
 
     _handlers = {
-      curve: _this._createHazardCurveHandler
+      'curve.json': _this._createHazardCurveHandler
     };
   };
 
@@ -214,8 +214,8 @@ var WebService = function (options) {
     }
 
     response.json({
-      data: data,
-      metadata: _this.getResponseMetadata(request, true)
+      metadata: _this.getResponseMetadata(request, true),
+      data: data
     });
   };
 
