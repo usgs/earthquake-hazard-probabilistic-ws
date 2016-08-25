@@ -75,7 +75,8 @@ var HazardCurveFactory = function (options) {
    */
   _this.getCurve = function (latitude, longitude, edition, region, imt, vs30) {
     // all fields are required
-    if (!latitude && !longitude && !edition && !region && !imt && !vs30) {
+    if (latitude === null || longitude === null || !edition || !region ||
+        !imt || !vs30) {
       return Promise.reject(new Error('The following fields are required: ' +
           'latitude, longitude, edition, region, imt, vs30'));
     }
@@ -146,7 +147,7 @@ var HazardCurveFactory = function (options) {
   _this.getDataset = function (editionid, regionid, vs30id, imtid) {
 
     // all fields are required
-    if (!editionid && !regionid && !vs30id && !imtid) {
+    if (!editionid || !regionid || !vs30id || !imtid) {
       return Promise.reject(new Error('The following fields are required: ' +
           'editionid, regionid, vs30id, imtid'));
     }
