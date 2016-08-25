@@ -1,0 +1,248 @@
+<!doctype html>
+<html>
+<head>
+  <title>Curve Endpoint Documentation</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+
+  <link rel="stylesheet" href="http://earthquake.usgs.gov/theme/site/earthquake/index.css"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons|Merriweather:400,400italic,700|Source+Sans+Pro:400,300,700"/>
+  <link rel="stylesheet" href="css/index.css"/>
+</head>
+<body>
+
+<main>
+  <header>
+    <h1>Curve Endpoint Documentation</h1>
+    <p>Probabilistic seismic hazard curve for one location.</p>
+  </header>
+
+
+  <h2 id="parameters">Request Parameters</h2>
+  <p>
+    The curve end point requires certain parameters and accepts additional
+    optional parameters as well.
+  </p>
+
+  <h3 id="parameters-required">Required</h3>
+
+  <dl>
+    <dt id="request-latitude">latitude</dt>
+    <dd>
+      Latitude for location at which to compute a hazard curve.
+      Decimal degrees.
+    </dd>
+
+    <dt id="request-longitude">longitude</dt>
+    <dd>
+      Longitude for location at which to compute a hazard curve.
+      Decimal degrees.
+    </dd>
+
+    <dt id="request-modelEdition">modelEdition</dt>
+    <dd>Hazard model edition to use when computing the hazard curve.</dd>
+
+    <dt id="request-vs30">vs30</dt>
+    <dd>Soil conditions to use when computing the hazard curve</dd>
+  </dl>
+
+  <h3 id="parameters-optional">Optional</h3>
+
+  <dl>
+    <!--
+
+    TODO :: This option is not yet supported. Currently all results are
+                 computed using the static method.
+
+    <dt id="parameter-mode">mode</dt>
+    <dd class="default">
+      Default: &ldquo;dynamic&rdquo; if available, otherwise
+      &ldquo;static&rdquo;
+    </dd>
+    <dd>
+      Whether the results should be computed dynamically for a specific point
+      (<em>dynamic</em>) or if the results should be fetched from a
+      pre-computed grid (<em>static</em>).
+    </dd>
+  -->
+
+    <dt id="request-modelRegion">modelRegion</dt>
+    <dd class="default">Default: Best available</dd>
+    <dd>Hazard model region to use when computing the hazard curve.</dd>
+
+    <dt id="request-spectralPeriod">spectralPeriod</dt>
+    <dd class="default">Default: All available</dd>
+    <dd>Spectral period of the hazard curve to compute.</dd>
+  </dl>
+
+  <hr/>
+
+  <h2 id="response">Response</h2>
+  <p>
+    Responses follow the <a href="response.html">generalized response
+    format</a>. The documentation below describes the properties that will
+    be found on the <code>response.data</code> attribute. For the
+    <em>curve</em> endpoint, the <code>response.data</code> will be an array of
+    <code>Curve</code> objects. Each curve object will have the following
+    properties.
+  </p>
+
+  <h3>Curve Properties</h3>
+  <dl>
+    <dt id="response-metadata">metadata</dt>
+    <dd>
+      Metadata describing the curve parameters.
+
+      <dl>
+        <dt id="response-metadata-latitude">latitude</dt>
+        <dd>Latitude of location for this hazard curve.</dd>
+
+        <dt id="response-metadata-longitude">longitude</dt>
+        <dd>Longitude of location for this hazard curve.</dd>
+
+        <dt id="response-metadata-modelEdition">modelEdition</dt>
+        <dd>Hazard model edition for this curve.</dd>
+
+        <dt id="response-metadata-modelRegion">modelRegion</dt>
+        <dd>Hazard model region for this hazard curve.</dd>
+
+        <dt id="response-metadata-spectralPeriod">spectralPeriod</dt>
+        <dd>Spectral period for this curve.</dd>
+
+        <dt id="response-metadata-vs30">vs30</dt>
+        <dd>Soil conditions for this hazard curve.</dd>
+      </dl>
+    </dd>
+
+    <dt id="response-data">data</dt>
+    <dd>
+      Data defining a discrete hazard curve for the specified metadata
+      properties. The data is formatted as an array of points. Each point
+      is itself an array containing an [x, y] pair.
+    </dd>
+  </dl>
+
+  <hr/>
+
+  <h2>Example</h2>
+  <h3 id="example_request">Example Request URL</h3>
+  <a class="example-url" href="curve.json?latitude=34.001&amp;longitude=-118.001&amp;modelEdition=E2014R1&amp;vs30=760"
+      >&hellip;curve.json?latitude=34.001&amp;longitude=-118.001&amp;modelEdition=E2014R1&amp;vs30=760</a>
+
+
+  <h3 id="example_response">Example Response</h3>
+  <div class="code"><pre>{
+  "data": [
+    {
+      "metadata": {
+        "latitude": 34.001,
+        "longitude": -118.001,
+        "modelEdition": "E2014R1",
+        "modelRegion": "COUS0P05",
+        "spectralPeriod": "PGA",
+        "vs30": "760"
+      },
+      "data": [
+        [0.005, 0.47035798799999934],
+        [0.007, 0.3663388359999995],
+        [0.0098, 0.2791714639999997],
+        [0.0137, 0.20872927599999982],
+        [0.0192, 0.1525400799999999],
+        [0.0269, 0.10889427199999994],
+        [0.0376, 0.07565349919999995],
+        [0.0527, 0.05054158639999997],
+        [0.0738, 0.03251003639999997],
+        [0.103, 0.020246192799999983],
+        [0.145, 0.012022539199999993],
+        [0.203, 0.00695327116],
+        [0.284, 0.0038808144000000064],
+        [0.397, 0.0020745970400000103],
+        [0.556, 0.00103180040800001],
+        [0.778, 0.00046446749600000684],
+        [1.09, 0.00018125022400000365],
+        [1.52, 0.00005980380760000152],
+        [2.2, 0.00001336372876000042],
+        [3.3, 0.000002616153120000127]
+      ]
+    },
+    {
+      "metadata": {
+        "latitude": 34.001,
+        "longitude": -118.001,
+        "modelEdition": "E2014R1",
+        "modelRegion": "COUS0P05",
+        "spectralPeriod": "SA0P2",
+        "vs30": "760"
+      },
+      "data": [
+        [0.005, 0.7393627119999989],
+        [0.0075, 0.5847681799999992],
+        [0.0113, 0.44551403199999934],
+        [0.0169, 0.33022885999999957],
+        [0.0253, 0.23726167599999975],
+        [0.038, 0.16495667999999986],
+        [0.057, 0.11111287199999993],
+        [0.0854, 0.07193635639999996],
+        [0.128, 0.04423308159999996],
+        [0.192, 0.025686713199999975],
+        [0.288, 0.014159614799999989],
+        [0.432, 0.007466873719999999],
+        [0.649, 0.0037586708000000063],
+        [0.973, 0.0017945367200000095],
+        [1.46, 0.0007772682920000081],
+        [2.19, 0.00029048320000000475],
+        [3.28, 0.000088657624000002],
+        [4.92, 0.000020412534200000584],
+        [7.38, 0.000002921585960000148]
+      ]
+    },
+    {
+      "metadata": {
+        "latitude": 34.001,
+        "longitude": -118.001,
+        "spectralPeriod": "SA1P0",
+        "modelEdition": "E2014R1",
+        "modelRegion": "COUS0P05",
+        "vs30": "760"
+      },
+      "data": [
+        [0.0025, 0.6065969719999994],
+        [0.00375, 0.4502366119999996],
+        [0.00563, 0.32055987999999974],
+        [0.00844, 0.22028395199999984],
+        [0.0127, 0.1459273999999999],
+        [0.019, 0.09420582559999993],
+        [0.0285, 0.05854661159999995],
+        [0.0427, 0.03500567039999996],
+        [0.0641, 0.020023209999999972],
+        [0.0961, 0.011025257999999987],
+        [0.144, 0.005830533039999997],
+        [0.216, 0.0029286512400000047],
+        [0.324, 0.0013819283200000073],
+        [0.487, 0.0005922441120000062],
+        [0.73, 0.0002244953840000037],
+        [1.09, 0.00007284470960000167],
+        [1.64, 0.000018445980920000534],
+        [2.46, 0.0000033235797200001694],
+        [3.69, 0],
+        [5.54, 0]
+      ]
+    }
+  ],
+  "metadata": {
+    "date": "1970-01-01T00:00:00.000Z",
+    "status": "success",
+    "url": "&hellip;/curve?latitude=34.001&amp;longitude=-118.001&amp;modelEdition=E2014R1&amp;vs30=760"
+  }
+}</pre></div>
+
+
+  </main>
+
+  <footer class="site-commonnav">
+    <a href="index.html"
+        >Probabilistic Seismic Hazard Web Service Documentation</a>
+  </footer>
+</body>
+</html>
