@@ -3,6 +3,7 @@
 
 var express = require('express'),
     extend = require('extend'),
+    HazardCurveFactory = require('./HazardCurveFactory'),
     HazardCurveHandler = require('./handler/HazardCurveHandler'),
     pgp = require('pg-promise')();
 
@@ -62,10 +63,29 @@ var WebService = function (options) {
     });
 
     _handlers = {
-      curve: HazardCurveHandler
+      curve: _this._createHazardCurveHandler
     };
   };
 
+
+  /**
+   * Private method for creating a hazard curve handler. This wraps up
+   * construction such that this method can be called with no parameters
+   * and all necessary sub-classes are instantiated in order to produce a
+   * functioning handler.
+   *
+   * @return {HazardCurveHandler}
+   *     A new instance of a {HazardCurveHandler} class which internally
+   *     receives a new instance of a {HazardCurveFactory} class which
+   *     re-uses `_db` connection pool as its connection.
+   */
+  _this._createHazardCurveHandler = function () {
+    return HazardCurveHandler({
+      factory: HazardCurveFactory({
+        connection: _db
+      })
+    });
+  };
 
   /**
    * Frees resources associated with service.
@@ -104,16 +124,14 @@ var WebService = function (options) {
         method;
 
     method = request.params.method;
-    if (! (method in _handlers)) {
+    if (!(method in _handlers)) {
       return next();
     }
 
     _this.setHeaders();
 
     try {
-      handler = _handlers[method]({
-        db: _db
-      });
+      handler = _handlers[method]();
 
       handler.get(request.query)
         .then((data) => {
