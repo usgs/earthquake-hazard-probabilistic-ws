@@ -121,11 +121,11 @@ var HazardCurveFactory = function (options) {
       `).then(function (result) {
         return {
           'metadata': {
-            'edition': edition,
-            'imt': imt,
-            'latitude': latitude,
-            'longitude': longitude,
-            'region': region,
+            'latitude': parseFloat(latitude),
+            'longitude': parseFloat(longitude),
+            'modelEdition': edition,
+            'modelRegion': region,
+            'spectralPeriod': imt,
             'vs30': vs30
           },
           'data': _this.formatCurve(result[0].iml,
