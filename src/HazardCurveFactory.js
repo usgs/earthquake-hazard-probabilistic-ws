@@ -316,10 +316,34 @@ var HazardCurveFactory = function (options) {
     return _this.connection.query(sql);
   };
 
+  /**
+   * Linearly interpolate between two points (x0, y0) and (x1, y1)
+   *
+   * @param x0 {number} x0 x-value of first point
+   * @param y0 {number} y0 y-value of first point
+   * @param x1 {number} x1 x-value of second point
+   * @param y1 {number} y1 y-value of second point
+   * @param x  {number} x
+   *
+   * @return {number}
+   *         Interpolated point (y-value)
+   */
   _this.interpolate = function (x0, y0, x1, y1, x) {
     return y0 + ((x - x0) * ((y1 - y0) / (x1 - x0)));
   };
 
+  /**
+   * Linearly interpolate all points on a curve
+   *
+   * @param x0 {array} x0 list of all x-values for first point
+   * @param y0 {array} y0 list of all y-values for first point
+   * @param x1 {array} x1 list of all x-values for second point
+   * @param y1 {array} y1 list of all y-values for second point
+   * @param x  {number} x
+   *
+   * @return {array}
+   *         Interpolated curve (y-values)
+   */
   _this.interpolateCurve = function (x0, y0, x1, y1, x) {
     var i,
         len,
