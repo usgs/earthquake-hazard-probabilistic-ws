@@ -49,7 +49,7 @@ RUN /bin/bash --login -c " \
         cd /hazdev-project && \
         export NON_INTERACTIVE=true && \
         npm install && \
-        rm -r \
+        rm -rf \
             $HOME/.npm \
             /tmp/npm* \
         "
