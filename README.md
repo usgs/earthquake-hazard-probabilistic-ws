@@ -29,16 +29,16 @@ When initially creating a container from the base image, you must provide
 several configuration parameters based on your working environment.
 
 - Required configuration
-  - *MOUNT_PATH*: The base URL path on which to listen for requests. This can
+  - `MOUNT_PATH`: The base URL path on which to listen for requests. This can
                   be any path, an empty path, or just a slash "/".
-  - *PORT*: The port number on which to listen for connections. This can be
+  - `PORT`: The port number on which to listen for connections. This can be
             any available port on the host system.
-  - *DB_HOST*: The hostname or IP address where the database is running.
-  - *DB_NAME*: The name of the database where data is installed.
-  - *DB_USER*: The database user to use for connections. This user must
+  - `DB_HOST`: The hostname or IP address where the database is running.
+  - `DB_NAME`: The name of the database where data is installed.
+  - `DB_USER`: The database user to use for connections. This user must
                already exist.
-  - *DB_PASS*: The password for the database user to connect with.
-  - *DB_PORT*: The port number on which the database is listening.
+  - `DB_PASS`: The password for the database user to connect with.
+  - `DB_PORT`: The port number on which the database is listening.
 
 - Start the container using the image tag.
 
@@ -48,9 +48,8 @@ several configuration parameters based on your working environment.
     ```
     docker run -d
       --name earthquake-hazard-probabilistic-ws \
-      -p {PORT}:{PORT} \
+      -p {PORT}:8000 \
       -e MOUNT_PATH={MOUNT_PATH} \
-      -e PORT={PORT} \
       -e DB_HOST={DB_HOST} \
       -e DB_NAME={DB_NAME} \
       -e DB_USER={DB_USER} \
