@@ -256,7 +256,7 @@ var WebService = function (options) {
 
     app.listen(_port, function () {
       process.stderr.write('WebService listening ' +
-          'http://localhost:' + _port + _mountPath + '/\n');
+          'http://localhost:' + _port + _mountPath + '\n');
     });
   };
 
