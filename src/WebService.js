@@ -187,6 +187,7 @@ var WebService = function (options) {
       process.stderr.write('url=' + request.originalUrl);
     }
     if (err && err.stack) {
+      process.stderr.write(err.message);
       process.stderr.write(err.stack);
     }
 

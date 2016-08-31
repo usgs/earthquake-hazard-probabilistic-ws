@@ -75,7 +75,8 @@ var HazardCurveFactory = function (options) {
    */
   _this.getCurve = function (latitude, longitude, edition, region, imt, vs30) {
     // all fields are required
-    if (!latitude && !longitude && !edition && !region && !imt && !vs30) {
+    if (latitude === null || longitude === null || !edition || !region ||
+        !imt || !vs30) {
       return Promise.reject(new Error('The following fields are required: ' +
           'latitude, longitude, edition, region, imt, vs30'));
     }
@@ -110,10 +111,10 @@ var HazardCurveFactory = function (options) {
           INNER JOIN imt     ON (dataset.imtid = imt.id)
           INNER JOIN vs30    ON (dataset.vs30id = vs30.id)
         WHERE
-          curve.latitude  < '${maxLatitude}' AND
-          curve.latitude  > '${minLatitude}' AND
-          curve.longitude < '${maxLongitude}' AND
-          curve.longitude > '${minLongitude}' AND
+          curve.latitude  < ${maxLatitude} AND
+          curve.latitude  > ${minLatitude} AND
+          curve.longitude < ${maxLongitude} AND
+          curve.longitude > ${minLongitude} AND
           edition.value = '${edition}' AND
           region.value = '${region}' AND
           imt.value = '${imt}' AND
@@ -146,7 +147,7 @@ var HazardCurveFactory = function (options) {
   _this.getDataset = function (editionid, regionid, vs30id, imtid) {
 
     // all fields are required
-    if (!editionid && !regionid && !vs30id && !imtid) {
+    if (!editionid || !regionid || !vs30id || !imtid) {
       return Promise.reject(new Error('The following fields are required: ' +
           'editionid, regionid, vs30id, imtid'));
     }
@@ -264,7 +265,7 @@ var HazardCurveFactory = function (options) {
    *     resolves with an object containing region information when
    *     successfully retrieved, rejects with Error when unsuccessful.
    */
-  _this.getRegions = function (hasdata) {
+  _this.getRegions = function (latitude, longitude, hasdata) {
     var sql;
 
     sql = 'SELECT DISTINCT ' +
@@ -275,7 +276,14 @@ var HazardCurveFactory = function (options) {
         'FROM ' +
             'region ' +
             (hasdata ?
-                'INNER JOIN dataset ON (region.id = dataset.regionid) ': '') +
+            'INNER JOIN dataset ON (region.id = dataset.regionid) ': '') +
+        (latitude !== null && longitude !== null ?
+        'WHERE ' +
+            'region.maxlatitude >= ' + latitude + ' AND ' +
+            'region.maxlongitude >= ' + longitude + ' AND ' +
+            'region.minlatitude <= ' + latitude + ' AND ' +
+            'region.minlongitude <= ' + longitude + ' '
+            : '' ) +
         'ORDER BY ' +
             'region.displayorder ASC';
 
@@ -308,10 +316,34 @@ var HazardCurveFactory = function (options) {
     return _this.connection.query(sql);
   };
 
+  /**
+   * Linearly interpolate between two points (x0, y0) and (x1, y1)
+   *
+   * @param x0 {number} x0 x-value of first point
+   * @param y0 {number} y0 y-value of first point
+   * @param x1 {number} x1 x-value of second point
+   * @param y1 {number} y1 y-value of second point
+   * @param x  {number} x
+   *
+   * @return {number}
+   *         Interpolated point (y-value)
+   */
   _this.interpolate = function (x0, y0, x1, y1, x) {
     return y0 + ((x - x0) * ((y1 - y0) / (x1 - x0)));
   };
 
+  /**
+   * Linearly interpolate all points on a curve
+   *
+   * @param x0 {array} x0 list of all x-values for first point
+   * @param y0 {array} y0 list of all y-values for first point
+   * @param x1 {array} x1 list of all x-values for second point
+   * @param y1 {array} y1 list of all y-values for second point
+   * @param x  {number} x
+   *
+   * @return {array}
+   *         Interpolated curve (y-values)
+   */
   _this.interpolateCurve = function (x0, y0, x1, y1, x) {
     var i,
         len,
